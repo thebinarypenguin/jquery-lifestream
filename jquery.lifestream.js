@@ -936,24 +936,24 @@ $.fn.lifestream.feeds.github = function( config, callback ) {
       pushed: '<a href="${status.url}" title="{{if title}}${title} '
         +'by ${author} {{/if}}">pushed</a> to <a href="http://github.com/'
         +'${repo}/tree/${branchname}">${branchname}</a> at '
-        +'<a href="http://github.com/${repo}">${repo}</a>',
+        +'<a href="http://github.com/${repo}">${repo}</a> <em>${fuzzy_date}</em>',
       gist: '<a href="${status.payload.url}" title="'
-        +'${status.payload.desc || ""}">${status.payload.name}</a>',
+        +'${status.payload.desc || ""}">${status.payload.name}</a> <em>${fuzzy_date}</em>',
       commented: 'commented on <a href="${status.url}">${what}</a> on '
-        +'<a href="http://github.com/${repo}">${repo}</a>',
+        +'<a href="http://github.com/${repo}">${repo}</a> <em>${fuzzy_date}</em>',
       pullrequest: '${status.payload.action} <a href="${status.url}">'
         +'pull request #${status.payload.number}</a> on '
-        +'<a href="http://github.com/${repo}">${repo}</a>',
+        +'<a href="http://github.com/${repo}">${repo}</a> <em>${fuzzy_date}</em>',
       created: 'created ${status.payload.ref_type || status.payload.object}'
         +' <a href="${status.url}">${status.payload.ref || '
         +'status.payload.object_name}</a> for '
-        +'<a href="http://github.com/${repo}">${repo}</a>',
+        +'<a href="http://github.com/${repo}">${repo}</a> <em>${fuzzy_date}</em>',
       createdglobal: 'created ${status.payload.object} '
-        +'<a href="${status.url}">${title}</a>',
+        +'<a href="${status.url}">${title}</a> <em>${fuzzy_date}</em>',
       deleted: 'deleted ${status.payload.ref_type} ${status.payload.ref} '
         +'at <a href="http://github.com/${status.repository.owner}/'
         +'${status.repository.name}">${status.repository.owner}/'
-        +'${status.repository.name}</a>'
+        +'${status.repository.name}</a> <em>${fuzzy_date}</em>'
     },
     config.template);
 
@@ -976,12 +976,14 @@ $.fn.lifestream.feeds.github = function( config, callback ) {
         title: title,
         author: title ? status.payload.shas.json[3] : "",
         branchname: status.payload.ref.split('/')[2],
-        repo: returnRepo(status)
+        repo: returnRepo(status),
+        fuzzy_date: moment(status.created_at).fromNow() // Depends on moment.js
       } );
     }
     else if (status.type === "GistEvent") {
       return $.tmpl( template.gist, {
-        status: status
+        status: status,
+        fuzzy_date: moment(status.created_at).fromNow() // Depends on moment.js
       } );
     }
     else if (status.type === "CommitCommentEvent") {
@@ -991,7 +993,8 @@ $.fn.lifestream.feeds.github = function( config, callback ) {
       return $.tmpl( template.commented, {
         what: what,
         repo: repo,
-        status: status
+        status: status,
+        fuzzy_date: moment(status.created_at).fromNow() // Depends on moment.js
       } );
     }
     else if (status.type === "IssueCommentEvent") {
@@ -1000,14 +1003,16 @@ $.fn.lifestream.feeds.github = function( config, callback ) {
       return $.tmpl( template.commented, {
         what: what,
         repo: repo,
-        status: status
+        status: status,
+        fuzzy_date: moment(status.created_at).fromNow() // Depends on moment.js
       } );
     }
     else if (status.type === "PullRequestEvent") {
       repo = returnRepo(status);
       return $.tmpl( template.pullrequest, {
         repo: repo,
-        status: status
+        status: status,
+        fuzzy_date: moment(status.created_at).fromNow() // Depends on moment.js
       } );
     }
     // Github has several syntaxes for create tag events
@@ -1018,7 +1023,8 @@ $.fn.lifestream.feeds.github = function( config, callback ) {
       repo = returnRepo(status);
       return $.tmpl( template.created, {
         repo: repo,
-        status: status
+        status: status,
+        fuzzy_date: moment(status.created_at).fromNow() // Depends on moment.js
       } );
     }
     else if (status.type === "CreateEvent") {
@@ -1029,12 +1035,14 @@ $.fn.lifestream.feeds.github = function( config, callback ) {
               returnRepo(status));
       return $.tmpl( template.createdglobal, {
         title: title,
-        status: status
+        status: status,
+        fuzzy_date: moment(status.created_at).fromNow() // Depends on moment.js
       } );
     }
     else if (status.type === "DeleteEvent") {
       return $.tmpl( template.deleted, {
-        status: status
+        status: status,
+        fuzzy_date: moment(status.created_at).fromNow() // Depends on moment.js
       } );
     }
 
@@ -1084,7 +1092,7 @@ $.fn.lifestream.feeds.googleplus = function( config, callback ) {
   var template = $.extend({},
     {
     posted: '<a href="${actor.url}">${actor.displayName}</a> has posted a new entry <a href="${url}" '
-        + 'title="${id}">${title}</a> <!--With--> ${object.replies.totalItems} replies, ${object.plusoners.totalItems} +1s, ${object.resharers.totalItems} Reshares'
+        + 'title="${id}">${title}</a> <em>${fuzzy_date}</em>'
     },
     config.template),
 
@@ -1095,6 +1103,7 @@ $.fn.lifestream.feeds.googleplus = function( config, callback ) {
       j = input.items.length;
       for( ; i<j; i++) {
         item = input.items[i];
+        item.fuzzy_date = moment(item.published).fromNow(); // Depends on moment.js
         output.push({
           date: new Date( item.published ),
           config: config,
@@ -2099,6 +2108,16 @@ $.fn.lifestream.feeds.twitter = function( config, callback ) {
 
   },
   /**
+   * Append the creation date in a fuzzy format (e.g. one day ago)
+   * Depends on moment.js library (http://momentjs.com/)
+   * @private
+   * @param {String} created_at A date string in ISO-8601 format
+   * @return {String} A date string in fuzzy format
+   */
+  appendDate = function ( created_at ) {
+    return '<em>' + moment(created_at).fromNow() + '</em>';
+  },
+  /**
    * Parse the input from twitter
    */
   parseTwitter = function( input ) {
@@ -2112,7 +2131,7 @@ $.fn.lifestream.feeds.twitter = function( config, callback ) {
           date: new Date(status.created_at),
           config: config,
           html: $.tmpl( template.posted, {
-            tweet: linkify(status.text),
+            tweet: linkify(status.text) + ' ' + appendDate(status.created_at),
             complete_url: 'http://twitter.com/#!/' + config.user + "/status/" + status.id_str
           } ),
           url: 'http://twitter.com/#!/' + config.user
