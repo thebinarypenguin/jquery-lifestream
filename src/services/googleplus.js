@@ -4,7 +4,7 @@ $.fn.lifestream.feeds.googleplus = function( config, callback ) {
   var template = $.extend({},
     {
     posted: '<a href="${actor.url}">${actor.displayName}</a> has posted a new entry <a href="${url}" '
-        + 'title="${id}">${title}</a> <!--With--> ${object.replies.totalItems} replies, ${object.plusoners.totalItems} +1s, ${object.resharers.totalItems} Reshares'
+        + 'title="${id}">${title}</a> <em>${fuzzy_date}</em>'
     },
     config.template),
 
@@ -15,6 +15,7 @@ $.fn.lifestream.feeds.googleplus = function( config, callback ) {
       j = input.items.length;
       for( ; i<j; i++) {
         item = input.items[i];
+        item.fuzzy_date = moment(item.published).fromNow(); // Depends on moment.js
         output.push({
           date: new Date( item.published ),
           config: config,

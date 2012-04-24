@@ -49,6 +49,16 @@ $.fn.lifestream.feeds.twitter = function( config, callback ) {
 
   },
   /**
+   * Append the creation date in a fuzzy format (e.g. one day ago)
+   * Depends on moment.js library (http://momentjs.com/)
+   * @private
+   * @param {String} created_at A date string in ISO-8601 format
+   * @return {String} A date string in fuzzy format
+   */
+  appendDate = function ( created_at ) {
+    return '<em>' + moment(created_at).fromNow() + '</em>';
+  },
+  /**
    * Parse the input from twitter
    */
   parseTwitter = function( input ) {
@@ -62,7 +72,7 @@ $.fn.lifestream.feeds.twitter = function( config, callback ) {
           date: new Date(status.created_at),
           config: config,
           html: $.tmpl( template.posted, {
-            tweet: linkify(status.text),
+            tweet: linkify(status.text) + ' ' + appendDate(status.created_at),
             complete_url: 'http://twitter.com/#!/' + config.user + "/status/" + status.id_str
           } ),
           url: 'http://twitter.com/#!/' + config.user
